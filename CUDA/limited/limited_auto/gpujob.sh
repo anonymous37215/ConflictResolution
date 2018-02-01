@@ -9,8 +9,8 @@ for SIZE in 4094; do
                 sed  -i -e "s/#define OCCUPANCY .*/#define OCCUPANCY $agentNumber/" ../iterative_push_postponed/parameter.cuh
 
                 nvcc  -std=c++11 ../iterative_push_postponed/iterative_push_postponed.cu
-                #for i in 1 2 3 4 5 6 7 8 9 10; do
-		for i in 1; do
+                for i in 1 2 3 4 5 6 7 8 9 10; do
+		#for i in 1; do
                             ./a.out 100 >> output_iterative_push_postponed.txt
 		done
         done
@@ -24,8 +24,8 @@ for SIZE in 4094; do
                 sed  -i -e "s/#define OCCUPANCY .*/#define OCCUPANCY $agentNumber/" ../noniterative_push_incremental/parameter.cuh
 
                 nvcc -std=c++11 ../noniterative_push_incremental/noniterative_push_incremental.cu
-                #for i in 1 2 3 4 5 6 7 8 9 10; do
-                for i in 1; do
+                for i in 1 2 3 4 5 6 7 8 9 10; do
+                #for i in 1; do
                             ./a.out 100 >> output_noniterative_push_incremental.txt
                 done
         done
@@ -40,8 +40,8 @@ for SIZE in 4094; do
                 sed  -i -e "s/#define OCCUPANCY .*/#define OCCUPANCY $agentNumber/" ../iterative_push_incremental/parameter.cuh
 
                 nvcc -std=c++11 ../iterative_push_incremental/iterative_push_incremental.cu
-                #for i in 1 2 3 4 5 6 7 8 9 10; do
-                for i in 1; do
+                for i in 1 2 3 4 5 6 7 8 9 10; do
+                #for i in 1; do
                             ./a.out 1 >> output_iterative_push_incremental.txt
                 done
         done
@@ -57,8 +57,8 @@ for SIZE in 4094; do
                 sed  -i -e "s/#define OCCUPANCY .*/#define OCCUPANCY $agentNumber/" ../iterative_pull_postponed/parameter.cuh
 
                 nvcc -std=c++11 ../iterative_pull_postponed/iterative_pull_postponed.cu
-                #for i in 1 2 3 4 5 6 7 8 9 10; do
-                for i in 1; do
+                for i in 1 2 3 4 5 6 7 8 9 10; do
+                #for i in 1; do
                            ./a.out 100 >> output_iterative_pull_postponed.txt
                 done
         done
