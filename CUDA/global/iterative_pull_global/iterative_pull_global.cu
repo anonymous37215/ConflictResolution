@@ -103,6 +103,7 @@ __global__ void compute(int grid[][SIZE+2], int new_grid[][SIZE+2], int temp_gri
 		if(sameTypeCount < happinessThreshold){
 
 			temp_grid[idx][idy] = current_priority;
+		}
 	}
 	
 
