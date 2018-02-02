@@ -28,12 +28,10 @@ typedef curandStatePhilox4_32_10_t myCurandState_t;
 
 #define CONFLICT_LIST_LENGTH 20
 
-//const int agentNumber = (SIZE * SIZE / 2);
 const int agentTypeOneNumber = agentNumber / 2;
 const int agentTypeTwoNumber = agentNumber - agentTypeOneNumber;
 const int happinessThreshold = 5;
 const int numThreadsPerBlock = 256;
-//const int limitedNeighbourhood = 3;
 
 void printOutput(int [SIZE+2][SIZE+2]);
 void initPos(int grid [SIZE+2][SIZE+2]);
@@ -47,16 +45,13 @@ __device__ unsigned int numberMoveable = 0;
 __device__ int getnextrand(myCurandState_t *state){
 
 	int number = (1 + (int)(curand_uniform(state)*(SIZE)));
-	//printf("%d\n",number);
 	return number;
 }
 
 __global__ void initCurand(myCurandState_t state[][SIZE+2], unsigned long seed){
 	int idx = threadIdx.x + blockIdx.x * blockDim.x;
 	int idy=blockIdx.y*blockDim.y+threadIdx.y;
-	//curand_init(seed, idx*(SIZE+2)+idy, 0, &state[idx][idy]);
 	curand_init( 0 ,idx*(SIZE+2)+idy+10, 0, &state[idx][idy]);
-	//curand_init(idx*(SIZE+2)+idy, 0, 0, &state[idx][idy]);
 
 }
 
@@ -69,18 +64,8 @@ __global__ void compute(int grid[][SIZE+2], int new_grid[][SIZE+2], int temp_gri
 	int sameTypeCount=0;
 	int current_priority = idx*(SIZE+2)+idy;
 
-	//new_grid[idx][idy] = grid[idx][idy];
 
 	if(grid[idx][idy] != 0){
-		//new_grid[idx][idy] = 3;
-		//for(int i=-1;i<2;i++){
-		//	for(int j=-1; j<2;j++){
-		//		if(i!=0 && j!=0 && (grid[idx+i][idy+j]==grid[idx][idy]) ){
-					
-		//			sameTypeCount += 1;
-		//		} 
-		//	}
-		//}
 		int currentType = grid[idx][idy];
 
 		if(grid[idx-1][idy-1] == currentType){
@@ -117,11 +102,7 @@ __global__ void compute(int grid[][SIZE+2], int new_grid[][SIZE+2], int temp_gri
 
 		if(sameTypeCount < happinessThreshold){
 
-			// printf("moveable: %d\n", current_priority);
-			
 			temp_grid[idx][idy] = current_priority;
-       			//atomicAdd(&numberMoveable, 1);
-		}
 	}
 	
 
@@ -134,79 +115,40 @@ __global__ void prepareNewGrid (int temp_grid[][SIZE+2], int new_grid[][SIZE+2],
 	int idy=blockIdx.y*blockDim.y+threadIdx.y;
 
 	if(temp_grid[idx][idy] != 0){
-		//int agent_position = move_list[idx];
-		//int idxTox = idx / PESIZE;
-		//int idxToy = idx % PESIZE;
-		//int agent_position = permutation[idxTox][idxToy];
 
-		//if(agent_position/(SIZE+2)>(SIZE+2)){
-		//	printf("Outside %d %d\n",idx,agent_position);
-		//}
-		//else{
 		new_grid[idx][idy] = 0;
 
-		//}
 	}
 	new_gridCopy[idx][idy] = new_grid[idx][idy];
 }
 
 
 
-//__device__ int cell_neighbourhood;
 
 __device__ bool agentsLeft;
 
 __global__ void assign_ (myCurandState_t state[][SIZE+2],int grid[][SIZE+2], int new_grid[][SIZE+2], int temp_grid[][SIZE+2],int move_grid[][SIZE+2], int rowAndColumn[][SIZE+2]){
 
-	int idx=blockIdx.x*blockDim.x+threadIdx.x;
-	int idy=blockIdx.y*blockDim.y+threadIdx.y;
-	// int current_priority = idx*(SIZE+2)+idy;	
-    //bool locallyfailed = false;
+    int idx=blockIdx.x*blockDim.x+threadIdx.x;
+    int idy=blockIdx.y*blockDim.y+threadIdx.y;
 
-    //int local_neighborhood = limitedNeighbourhood;
 
     if(temp_grid[idx][idy] != 0 ){
 
         do {
-                // loopCounter++;
-                // if(loopCounter == 10000) {
-                //   printf("%d/%d has issues\n", idx, idy);
-                //   return;
-                // }
 
-            //if(!locallyfailed) {
-                //int randomRow = (getnextrand(&state[idx][idy]) % local_neighborhood) - (local_neighborhood / 2);
-                //row = idx + randomRow;
-                //printf("%d \n",row);
 		int row = getnextrand(&state[idx][idy]);
 		int column = getnextrand(&state[idx][idy]);
-                //int randomColumn = (getnextrand(&state[idx][idy]) % local_neighborhood) - (local_neighborhood / 2);
 
-                //column = idy + randomColumn;
 
-            //} else {
              
-    		//	row = getnextrand(&state[idx][idy]);
-    		//	column = getnextrand(&state[idx][idy]);
-            //}
 
 		if(row>=1 && row <=SIZE && column>=1 && column<=SIZE && new_grid[row][column] == 0){
                 	move_grid[idx][idy] = row * (SIZE + 2) + column;
-				// old_value = atomicAdd(&move_grid_counters[row][column], 1);
-                // printf("trial: %d %d to %d %d\n", idx, idy, row, column);
-                // move_grid[row][column][old_value] = current_priority;
 
                 	return;
 
 			}
-            //loopCounter++;
-            //if(loopCounter > 10){
-                // printf("locallyfailed 100 times\n");
-                //locallyfailed = true;
-              //  local_neighborhood += 3;
-                //atomicMax(&cell_neighbourhood, local_neighborhood);
-               // loopCounter = 0;
-            //}
 
 		} while(true);
 	}
@@ -215,7 +157,6 @@ __global__ void assign_ (myCurandState_t state[][SIZE+2],int grid[][SIZE+2], int
 
 __global__ void updateTonew (int grid[][SIZE+2], int new_grid[][SIZE+2], int new_gridCopy[][SIZE+2], int temp_grid[][SIZE+2],int move_grid[][SIZE+2], int rowAndColumn[][SIZE+2], myCurandState_t state[][SIZE + 2]){
 
-    // printf("Entered utn\n");
 
     int idx=blockIdx.x*blockDim.x+threadIdx.x;
     int idy=blockIdx.y*blockDim.y+threadIdx.y;
@@ -228,17 +169,13 @@ __global__ void updateTonew (int grid[][SIZE+2], int new_grid[][SIZE+2], int new
         return;
   
  
-    //int neighbourhood = cell_neighbourhood;
 	
     for(int dx = 1; dx <= SIZE; dx++) {
         for(int dy = 1; dy <= SIZE; dy++) {
-            //if(idx + dx < 1 || idx + dx > SIZE || idy + dy < 1 || idy + dy > SIZE) // TODO: check for off-by-one
-              //  continue;
 
             int val = move_grid[dx][dy];
             if(val == cell_id) {
                 candidates[num_candidates] = (dx) * (SIZE + 2) + (dy);
-                // printf("cell %d %d has candidate %d %d, priority %d\n", idx, idy, dx, dy, candidates[num_candidates]);
                 num_candidates++;
                 if(num_candidates >= CONFLICT_LIST_LENGTH)
                     printf("BUG! conflict list length exceeded\n");
@@ -246,11 +183,9 @@ __global__ void updateTonew (int grid[][SIZE+2], int new_grid[][SIZE+2], int new
         }
     }
 
-    //printf("cell %d %d has %d candidates\n", idx, idy, num_candidates);
 
     if(!num_candidates)
         return;
-    //printf("cell %d %d has %d candidates\n", idx, idy, num_candidates);
 
     int priority = 0;
     if(num_candidates == 1)
@@ -264,9 +199,6 @@ __global__ void updateTonew (int grid[][SIZE+2], int new_grid[][SIZE+2], int new
 
     int source_row = priority / (SIZE + 2);
     int source_col = priority % (SIZE + 2);
-    // printf("move: %d %d to %d %d\n", source_row, source_col, idx, idy);
-    //if(grid[source_row][source_col] == 0)
-    //    printf("BUG! empty source cell %d %d, priority was %d\n", source_row, source_col, priority);
 
     new_grid[idx][idy] = grid[source_row][source_col];
     temp_grid[source_row][source_col] = 0;
@@ -274,55 +206,30 @@ __global__ void updateTonew (int grid[][SIZE+2], int new_grid[][SIZE+2], int new
 
 __global__ void newTogrid (int grid[][SIZE+2], int new_grid[][SIZE+2]){
 
-	//int (*device_tmpGrid)[SIZE+2]; 
-	//device_tmpGrid = grid;
 	int idx=blockIdx.x*blockDim.x+threadIdx.x;
 	int idy=blockIdx.y*blockDim.y+threadIdx.y;
 	grid[idx][idy] = new_grid[idx][idy];
-	//temp_grid[idx][idy] = 0;
-	//move_grid[idx][idy] = 0;
-	//new_grid = device_tmpGrid;
 	
 
 }
 
 __global__ void clearMoveGrid (int move_grid[][SIZE+2]){
 
-	//int (*device_tmpGrid)[SIZE+2];
-	//device_tmpGrid = grid;
 	int idx=blockIdx.x*blockDim.x+threadIdx.x;
 	int idy=blockIdx.y*blockDim.y+threadIdx.y;
-	//grid[idx][idy] = new_grid[idx][idy];
-	//temp_grid[idx][idy] = 0;
 	move_grid[idx][idy] = 0;
-	//new_grid = device_tmpGrid;
 
 }
 
 __global__ void update ( int temp_grid[][SIZE+2],int move_grid[][SIZE+2]){
 
-	//int (*device_tmpGrid)[SIZE+2]; 
-	//device_tmpGrid = grid;
 	int idx=blockIdx.x*blockDim.x+threadIdx.x;
 	int idy=blockIdx.y*blockDim.y+threadIdx.y;
-	//grid[idx][idy] = new_grid[idx][idy];
 	temp_grid[idx][idy] = 0;
 	move_grid[idx][idy] = 0;
-    //if(!idx && !idy)
-    //{
-        // printf("cell_neighbourhood was %d\n", cell_neighbourhood);
-      //  cell_neighbourhood = limitedNeighbourhood;
-    //}
-	//new_grid = device_tmpGrid;
-	
 
 }
 
-//__global__ void printNeighbourhood(){
-//	printf("neighbourhood %d\n", cell_neighbourhood);
-
-
-//}
 
 
 __global__ void printConflict(){
@@ -381,17 +288,11 @@ int main(int argc, char* argv[])
 
  	int (*device_rowAndColumn)[SIZE + 2];
 
-	//int (*device_tmpGrid)[SIZE+2]; 
 	srand(SRAND_VALUE);
 
 	size_t bytes = sizeof(int)*(SIZE + 2)*(SIZE + 2);
-	//host_grid = (int*)malloc(bytes);
 	myCurandState_t (*devState)[SIZE + 2];
 	bool agentsRemain = false;
-	//bool  *agentsRemain = new bool();
-	//*agentsRemain = false;
-	//bool * agentsLeft;
-	//typeof(agentsLeft) agentsRemain;
 	
 	cudaMalloc((void**)&devState, (SIZE+2)*(SIZE+2) * sizeof(myCurandState_t));
 
@@ -414,7 +315,6 @@ int main(int argc, char* argv[])
 	dim3 gridSize(gridSizePerDim, gridSizePerDim, 1);
 
 	initCurand<<<gridSize , blockSize>>>(devState, 1);
-	//cudaDeviceSynchronize();
 	for (int i=0; i<(SIZE+2); i++){
 		for (int j=0; j<SIZE+2; j++){
 			host_grid[i][j] = 0;
@@ -428,18 +328,12 @@ int main(int argc, char* argv[])
 
 	cudaMemcpy(device_grid,host_grid,bytes,cudaMemcpyHostToDevice);
 	cudaMemcpy(device_newGrid,host_grid,bytes,cudaMemcpyHostToDevice);
-	//cudaMemcpy(device_newGrid,device_grid,bytes,cudaMemcpyDeviceToDevice);
 	
 
 
 	newTogrid << <gridSize, blockSize >> >(device_grid, device_newGrid);
-	//cudaDeviceSynchronize();
-	//cudaCheckError();
 
 	update << <gridSize, blockSize >> >(device_tempGrid,device_moveGrid);
-	//cudaDeviceSynchronize();
-	//cudaCheckError();
-	//clock_t begin = clock(); //timing
 	if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
     	   perror( "clock gettime" );
    	   exit( EXIT_FAILURE );
@@ -452,9 +346,7 @@ int main(int argc, char* argv[])
 
 		roundCounter = 0;
 
-       // fprintf(stderr, "before compute\n");
 		compute << <gridSize, blockSize >> >(device_grid, device_newGrid,device_tempGrid);
-        //fprintf(stderr, "after compute\n");
 
 		 #ifdef DEBUG
 			cudaDeviceSynchronize();
@@ -462,13 +354,10 @@ int main(int argc, char* argv[])
 		 #endif
         fprintf(stderr, "before prepareNewGrid\n");
 		
-		//cudaMemcpy(host_grid, device_newGrid, bytes, cudaMemcpyDeviceToHost);
-
 		
 		prepareNewGrid<<<gridSize, blockSize>>>(device_tempGrid,device_newGrid,device_newGridCopy);
 
 
-        // fprintf(stderr, "before do loop\n");
 		 #ifdef DEBUG
 			cudaDeviceSynchronize();
 			cudaCheckError();
@@ -483,55 +372,24 @@ int main(int argc, char* argv[])
 			cudaCheckError();
 
 			assign_ << <gridSize, blockSize >> >(devState,device_grid, device_newGrid,device_tempGrid,device_moveGrid, device_rowAndColumn);
-			cudaDeviceSynchronize();
-			cudaCheckError();
-	//		printf("before utn\n");		
 			updateTonew << <gridSize, blockSize >> >(device_grid, device_newGrid, device_newGridCopy, device_tempGrid,device_moveGrid, device_rowAndColumn, devState);
-			//update agentLeft
-			cudaDeviceSynchronize();
-			cudaCheckError();
-	//		printf("after utn\n");
-			//cudaMemcpy(agentsRemain, agentsLeft, sizeof(bool), cudaMemcpyDeviceToHost);
-			//cudaCheckError();
 			clearMoveGrid<<<gridSize, blockSize >>>(device_moveGrid);
-			//newTogrid << <gridSize, blockSize >> >(device_grid, device_newGrid);
-			// cudaDeviceSynchronize();
-			// cudaCheckError();
 			roundCounter ++;
 			cudaMemcpyFromSymbol(&agentsRemain,agentsLeft,sizeof(bool),0, cudaMemcpyDeviceToHost);
 
-		//}while(false && agentsRemain == true);
 		}while(agentsRemain == true);
-		// printf("roundCounter %d  numRounds %d\n", roundCounter,i);
-		//while there are agents left
-		//printNeighbourhood<<<1,1>>>();
-		// cudaDeviceSynchronize();
-		//cudaCheckError();
 
-		//newTogrid << <gridSize, blockSize >> >(device_grid, device_newGrid);
 
 		newTogrid << <gridSize, blockSize >> >(device_grid, device_newGrid);
 
 	
 		update << <gridSize, blockSize >> >(device_tempGrid,device_moveGrid);
 		
-		// cudaMemcpy(device_grid,host_grid,bytes,cudaMemcpyHostToDevice);
-		//cudaMemcpy(device_newGrid,host_grid,bytes,cudaMemcpyHostToDevice);
-
-	    // cudaMemcpy(host_grid, device_grid, bytes, cudaMemcpyDeviceToHost);
-        // system("clear");
-		// printOutput(host_grid);
-        // usleep(3e5);
-
 
 	}
 	cudaDeviceSynchronize();
 
 
-
-	//clock_t end = clock();
-	//double time_spent = (double)(end - begin)*1000.0 / CLOCKS_PER_SEC;
-	//printf("Time: %f ms per round\n",time_spent / numRoundsTotal);
 	
 	if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
     	   perror( "clock gettime" );
@@ -542,18 +400,15 @@ int main(int argc, char* argv[])
           + ( stop.tv_nsec - start.tv_nsec ) / 1e3;
 	
     	printf( "Time is %.5f s \n", accum / 1e6);
-//	printConflict<<<1,1>>>();
 	cudaMemcpy(host_grid, device_grid, bytes, cudaMemcpyDeviceToHost);
 	//printOutput(host_grid);
-	checkNumber(host_grid);
+	//checkNumber(host_grid);
 	cudaFree(device_grid);
 	cudaFree(device_newGrid);
         cudaFree(device_newGridCopy);
 	cudaFree(device_tempGrid);
 	cudaFree(devState);
-	//cudaFree(agentsLeft);
 	cudaFree(device_rowAndColumn);
-	//free(host_grid);
 
 	return 0;
 
